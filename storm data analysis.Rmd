@@ -23,10 +23,24 @@ There are two questions we want to analyze, they are:
 ***
 In this report, there are three parts of chapter, first is Data Processing, second is Results, and third is summary.
 ***
+
 ## Data Processing
 
-```{r cars}
-summary(cars)
+Firstly, we read data from raw data, and check the data structure.
+```{r}
+rawStorm <- read.csv("repdata_data_StormData.csv.bz2",encoding = "UTF-8")
+str(rawStorm )
+```
+Because we want to analyze about costes of  population health and economic consequence, so we only keep the variables we need to use.
+Also, we have to change the class of data from factor into numeric class.
+
+```{r}
+data<-rawStorm [,c("EVTYPE","FATALITIES",
+                   "INJURIES", "PROPDMG",
+                  "CROPDMG")]
+data[,c(2:5)]<-sapply(data[,c(2:5)],as.character) %>% sapply(as.numeric)
+
+
 ```
 
 ## Including Plots
