@@ -11,6 +11,12 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+##require package
+```{r}
+library(dplyr)
+library(readr)
+
+```
 
 ## Storm data analysis
 
@@ -33,20 +39,31 @@ In this report, there are four parts of chapter, first is Synopsis, second is Da
 
 Firstly, we read the data from the original bz2 file and access it into a dataset named "rawStorm".
 ```{r}
-rawStorm <- read.csv("repdata_data_StormData.csv.bz2",encoding = "UTF-8",quote = "")
+rawStorm <- tbl_df(read_csv("repdata_data_StormData.csv.bz2"))
+str(rawStorm)
+
 ```
-The rawStorm data containt with 37 variables and 1773320 objects.   
+The rawStorm data containt with 37 variables and 1773320 objects. However, we want to analysis which event is most harmful with human, so we only need object with event.
+```{r}
+rawStorm<- filter(rawStorm,EVTYPE!="",EVTYPE!=" ",!is.na(EVTYPE))
+rawStorm %>% group_by(EVTYPE)
+```
 Because we have two different questions to analyze, so we split the data into two data sets which contain with different variables.
 to find out most harmful with respect to population health, we need to analysis fatalities and injuries.
 to find out the greatest economic consequences, we need to analysis property damage and crop damage.
 
 
 ```{r}
-harmful_with_health<-rawStorm [,c("X.EVTYPE.","X.FATALITIES.","X.INJURIES.")]
-cost_of_economic<-rawStorm [,c("X.EVTYPE.", "X.PROPDMG.","X.CROPDMG.")]
+harmful_with_health<-select(rawStorm ,EVTYPE,FATALITIES,INJURIES)%>%
+                      group_by(EVTYPE)%>%
+                      summarize(total_fatalities=sum(FATALITIES),total_injuries=sum(INJURIES))%>%
+                      arrange(total_fatalities,total_injuries)
+
+
+# cost_of_economic<-rawStorm [,c("X.EVTYPE.", "X.PROPDMG.","X.CROPDMG.")]
 
 ```
-
+harmful_with_health %>%summarize(total_fatalities=sum(FATALITIES),total_injuries=sum(INJURIES))
 ## Including Plots
 
 You can also embed plots, for example:
