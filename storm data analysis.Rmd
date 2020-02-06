@@ -3,19 +3,13 @@ title: "Storm data analysis"
 author: "Shin-Fu Chen"
 date: "2020/02/01"
 output:
-  pdf_document: default
   html_document:
     df_print: paged
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
-##require package
-```{r}
-library(dplyr)
-library(readr)
-
 ```
 
 ## Storm data analysis
@@ -27,12 +21,23 @@ There are two questions we want to analyze, they are:
 
 2. Across the United States, which types of events have the greatest economic consequences?
 
+### Require package
+to complete this analysis, we applied 3 packages to help.
+```{r}
+library(dplyr)
+library(readr)
+library(ggplot2)
+
+```
+
 ***
-In this report, there are four parts of chapter, first is Synopsis, second is Data Processing, third is Results, and fourth is summary.
-***
+In this report, there are four parts of the chapter, first is Synopsis, second is Data Processing, third is Results, and fourth is summary.
+
+
+
 ## Synopsis
-
-
+This report is to analyze the damage caused by climate disasters in the United States. We used storm data source from the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database, our goals are 1. find which types of events are the most harmful with respect to population health, 2. find which types of events have the greatest economic?  
+After our analysis, we find that tornado is the most harmful events to population, they caused 5633 fatalities and 91346 injuries. on the other hand, floods have greatest economic consequence.  
 
 
 ## Data Processing
@@ -43,33 +48,66 @@ rawStorm <- tbl_df(read_csv("repdata_data_StormData.csv.bz2"))
 str(rawStorm)
 
 ```
-The rawStorm data containt with 37 variables and 1773320 objects. However, we want to analysis which event is most harmful with human, so we only need object with event.
+The rawStorm data content with 37 variables and 1773320 objects. However, we want to analysis which event is most harmful to human, so we only need an object with events.
 ```{r}
 rawStorm<- filter(rawStorm,EVTYPE!="",EVTYPE!=" ",!is.na(EVTYPE))
 rawStorm %>% group_by(EVTYPE)
 ```
-Because we have two different questions to analyze, so we split the data into two data sets which contain with different variables.
-to find out most harmful with respect to population health, we need to analysis fatalities and injuries.
-to find out the greatest economic consequences, we need to analysis property damage and crop damage.
 
+## Results
+Because we have two different questions to analyze, so we split the data into two data sets which contain different variables. 
+
+#### 1 Across the United States, which types of events are most harmful with respect to population health? 
+   
+ To find out most harmful with respect to population health, we need to analysis fatalities and injuries. we summary total fatalities and total injures by each event, and show the top 3 events.
 
 ```{r}
 harmful_with_health<-select(rawStorm ,EVTYPE,FATALITIES,INJURIES)%>%
                       group_by(EVTYPE)%>%
                       summarize(total_fatalities=sum(FATALITIES),total_injuries=sum(INJURIES))%>%
-                      arrange(total_fatalities,total_injuries)
-
-
+                      arrange(desc(total_fatalities),desc(total_injuries))%>%
+                      head(3)
 # cost_of_economic<-rawStorm [,c("X.EVTYPE.", "X.PROPDMG.","X.CROPDMG.")]
+harmful_with_health
+```
+to show the comparison of total fatalities and total injuries, we apply the bar plot as follow:
+
+```{r, echo=FALSE}
+par(mfrow=c(2,1))
+ggplot(harmful_with_health,aes(x=EVTYPE,y=total_fatalities))+
+  geom_bar(stat = "identity")+
+  ylab("total fatalities")
+ggplot(harmful_with_health,aes(x=EVTYPE,y=total_injuries))+
+  geom_bar(stat = "identity")+
+  ylab("total injuries")
 
 ```
-harmful_with_health %>%summarize(total_fatalities=sum(FATALITIES),total_injuries=sum(INJURIES))
-## Including Plots
 
-You can also embed plots, for example:
+#### 2 Across the United States, which types of events have the greatest economic consequences?
+  
+To find out the greatest economic consequences, we need to analysis property damage and crop damage.
+However, the variable "PROPDMGEXP" and "CROPDMGEXP" are use letters to represent the multiples, so we have to change they into numbers, so the can be in the same units, after that we arrange those damage and show the top 5. 
+```{r}
+cost_of_economic<-select(rawStorm ,EVTYPE,PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP)%>%
+                      mutate(prop_exp=ifelse(PROPDMGEXP=="B"|PROPDMGEXP=="b",1000000000,
+                                         ifelse(PROPDMGEXP=="M"|PROPDMGEXP=="m",1000000,
+                                                ifelse(PROPDMGEXP=="K"|PROPDMGEXP=="k",1000,
+                                                       ifelse(PROPDMGEXP=="H"|PROPDMGEXP=="h",100,
+                                                              1)))),
+                         crop_exp=ifelse(CROPDMGEXP=="B"|CROPDMGEXP=="b",1000000000,
+                                         ifelse(CROPDMGEXP=="M"|CROPDMGEXP=="m",1000000,
+                                                ifelse(CROPDMGEXP=="K"|CROPDMGEXP=="k",1000,
+                                                       ifelse(CROPDMGEXP=="H"|CROPDMGEXP=="h",100,
+                                                              1)))),
+                         prop_dm=PROPDMG*prop_exp,crop_dm=CROPDMG*crop_exp)%>%
+                          group_by(EVTYPE)%>%
+                          summarize(total_prop_dm=sum(prop_dm,na.rm = T),total_crop_dm=sum(crop_dm,na.rm = T))%>%
+                      arrange(desc(total_prop_dm),desc(total_crop_dm))%>%
+                      head(5)
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+cost_of_economic
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## Summary
+In this report, we can see that tornado caused the most harmful with population health,  which caused 5633 fatalities and 91346 injuries, st the same time, they also cause a lot of property damages. 
+Another serious disaster is floods, which have caused the greatest damages of economic cost, and a lot of casualties too.  
